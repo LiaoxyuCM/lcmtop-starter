@@ -1,0 +1,147 @@
+@use "sass:map";
+@use "sass:list";
+
+@import url("https://fonts.loli.net/css?family=Poppins&display=swap");
+* {
+	font-family: "Poppins", sans-serif;
+	color: var(--c-2);
+}
+
+$colorthemes: (
+  "light":    #000000 #111111 #666666 #ededed,
+  "dark":     #ffffff #eeeeee #999999 #121212,
+  "blue":     #bbd7fb #e2e8f0 #90caf9 #0f172a,
+  "warm":     #f5a623 #3e2e1f #d4a373 #fdf6ed,
+  "forest":   #a8e6cf #1e3b2e #6b8f71 #f0f7f0,
+  "twilight": #b8a9d4 #a284da #7c6a9e #1a1124,
+  "sakura":   #ffb7c5 #5c2e3a #e8a0b4 #fef6f7,
+  "aurora":   #7fdbff #48a6da #4a8c9e #0b1a20
+);
+
+body {
+  /* fallback style */
+  @for $i from 1 through 4 {
+    --c-#{$i}: #{list.nth(map.get($colorthemes, "dark"), $i)};
+  }
+
+  /* basic */
+
+	background-color: var(--c-4);
+	transition: all 0.3s ease-in-out;
+	-ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+/*
+	--c-1: input bar highlighted
+	--c-2: text
+	--c-3: input bar
+	--c-4: background
+*/
+
+@each $title, $colors in $colorthemes {
+  .body__theme--#{$title} {
+    @for $i from 1 through 4 {
+      --c-#{$i}: #{list.nth($colors, $i)};
+    }
+  }
+}
+
+main {
+  display: flex;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  flex-direction: column;
+  align-items: center;
+}
+code {
+  font-family: consolas, Menlo, monospace;
+}
+.divition {
+  position: relative;
+  display: inline-block;
+
+  &::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: var(--c-1);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s ease-in-out;
+    z-index: 300;
+  }
+
+  &:focus-within::before {
+    transform: scaleX(1);
+  }
+}
+.eng-c {
+  outline: none!important;
+  border: none;
+  border-bottom: 2px solid var(--c-3);
+  padding: 5px;
+  width: 800px;
+  height: 25px;
+  background-color: var(--c-4);
+  transition: .3s all ease-in-out;
+
+  &::placeholder {
+    transition: .3s all ease-in-out;
+  }
+  &:hover::placeholder,
+  &:focus::placeholder {
+    letter-spacing: 1.5px;
+  }
+}
+
+.command-help,
+.doc-help {
+  &__lvl {
+    &--root {
+      width: 100%;
+    }
+    &--sub {
+      display: none;
+
+      p {
+        font-size: 12px;
+        display: flex;
+        flex-direction: column;
+      }
+    }
+  }
+
+  &__desc-align--right {
+    p {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .description {
+      color: #999;
+      text-align: right;
+    }
+  }
+}
+
+.description { color: #999; }
+
+$mobile:(880px 500px),
+        (550px 300px),
+        (330px 200px),
+        (220px 100px),
+        (110px 50px);
+
+@each $maxwidth, $setwidth in $mobile {
+  @media (max-width:#{$maxwidth}){ .eng-c {width: #{$setwidth}} }
+}
