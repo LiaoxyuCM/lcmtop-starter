@@ -144,18 +144,18 @@ function renderEngines(){
 }
 renderEngines();
 // Get hitokoto
-let hitokoto = '';
-let rawHitokoto = '';
+let hitokoto: string = '';
+let rawHitokoto: string = '';
 $.get("https://v1.hitokoto.cn/").done((data) => {
   rawHitokoto = data.hitokoto;
   hitokoto = ' - ' + rawHitokoto;
 }).fail((_) => {});
 // Setup placeholder
-const month = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const now = new Date();
-const pad = (x: number) => String(x).padStart(2,'0');
-let baseText = '';
-let subText = '';
+const month: string[] = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const now: Date = new Date();
+const pad: (x: number) => string = (x: number) => String(x).padStart(2,'0');
+let baseText: string = '';
+let subText: string = '';
 function updateClock(){
   now.setTime(Date.now());
   baseText = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
@@ -214,7 +214,7 @@ $text.on('keydown', (event: JQuery.KeyboardEventBase) => {
             const option = kwSplits[2];
             const name = kwSplits[3];
             if (!(/^[A-Za-z0-9\-_]+$/.test(name))) {
-              break; // ERR: NAME NOT ILLEGAL
+              break; // ERR: NAME ILLEGAL
             }
             if (option == "set") {
               const url = kwSplits[4];
