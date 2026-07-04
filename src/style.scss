@@ -19,26 +19,25 @@ $colorthemes: (
 );
 
 body {
-  /* fallback style */
+  /* fallback theme */
   @for $i from 1 through 4 {
     --c-#{$i}: #{list.nth(map.get($colorthemes, "dark"), $i)};
   }
 
-  /* basic */
-
-	background-color: var(--c-4);
-	transition: all 0.3s ease-in-out;
-	-ms-overflow-style: none;
+  /* basic style */
+  background-color: var(--c-4);
+  transition: all 0.3s ease-in-out;
+  -ms-overflow-style: none;
 
   &::-webkit-scrollbar {
     display: none;
   }
 }
 /*
-	--c-1: input bar highlighted
-	--c-2: text
-	--c-3: input bar
-	--c-4: background
+  --c-1: input bar highlighted
+  --c-2: text
+  --c-3: input bar
+  --c-4: background
 */
 
 @each $title, $colors in $colorthemes {
