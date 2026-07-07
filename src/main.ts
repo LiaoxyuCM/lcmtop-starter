@@ -71,6 +71,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         (doc) => `<div class="doc-help__lvl--sub doc-help__scope--${doc[0]}">${doc[1]}</div>`
       ).join("")
     }
+    <div class="doc-help__lvl--sub doc-help__scope--error">目前没有任何错误</div>
   </div>
 </main>
 `
@@ -91,6 +92,18 @@ let commandHelps: Record<string, JQuery<HTMLElement>> = {};
 let commandHelpsLock: boolean = false;
 let rawQuery: string = "";
 let activeDoc: string = "";
+const htmlEscape: (raw: string) => string = (raw: string) => raw.replace(/[&<>"'/]/g, (match) => {
+  switch (match) {
+    case '&': return '&amp;';
+    case '<': return '&lt;';
+    case '>': return '&gt;';
+    case '"': return '&quot;';
+    case "'": return '&#x27;';
+    case '/': return '&#x2F;';
+    default: return match;
+  }
+});
+
 parts.forEach(part => {
   commandHelps[part] = $(`.command-help__scope--${part}`);
 });
@@ -123,6 +136,12 @@ function deKVpair(text: string | null) {
       return [key, urlParts.join(' ')];
     })
   ) : text;
+}
+function showError(text: string, here: boolean = true) {
+  $(".doc-help__scope--error")
+    .html(`错误：${text + (here ? "&lt;&lt;&lt;这里" : "")}`)
+    .css({"display": "block"});
+  activeDoc = "error";
 }
 const egDF: Record<string, string> = {
   "baidu": "https://baidu.com/s?wd=%s",
@@ -194,12 +213,16 @@ $text.on('keydown', (event: JQuery.KeyboardEventBase) => {
             if (special[rootKw].includes(subKw)) {
               document.body.className = "body__theme--"+subKw;
               localStorage.setItem("starter-theme", subKw);
+            } else {
+              showError(`不知道你想设什么主题 /theme <b>${htmlEscape(subKw)}</b>`);
             }
             break;
           case "/history":
             subKw = kwSplits[1];
             if (special[rootKw][subKw]) {
               special[rootKw][subKw]();
+            } else {
+              showError(`不知道你要怎么操作历史记录 /history <b>${htmlEscape(subKw)}</b>`);
             }
             break;
           case "/engine":
@@ -208,22 +231,30 @@ $text.on('keydown', (event: JQuery.KeyboardEventBase) => {
               if (engines[subKw]) {
                 searchEngine = subKw;
                 localStorage.setItem("engine", subKw);
+              } else {
+                showError(`不知道你要切哪个搜索引擎 /engine <b>${htmlEscape(subKw)}</b>`);
               }
               break;
             }
             const option = kwSplits[2];
-            const name = kwSplits[3];
-            if (!(/^[A-Za-z0-9\-_]+$/.test(name))) {
-              break; // ERR: NAME ILLEGAL
+            const engname = kwSplits[3];
+            if (!(/^[A-Za-z0-9\-_]+$/.test(engname))) {
+              showError(`<code>name</code>只能包含字母,数字,横杠或下划线 /engine ~ ${htmlEscape(option)} <b>${htmlEscape(engname)}</b>`);
+              break;
             }
             if (option == "set") {
               const url = kwSplits[4];
-              engines[name] = url;
-              $(".command-help__scope--engine").append(`<p class="context__engine--${name}">/engine ${name}</p>`);
+              engines[engname] = url;
+              $(".command-help__scope--engine").append(`<p class="context__engine--${engname}">/engine ${engname}</p>`);
             } else if (option == "unset") {
-              if (searchEngine != name) { // ERR (NOT_MATCHED): CANNOT DELETE THIS ENGINE BECUZ IT IS USING
-                delete engines[name];
-                $(`.context__engine--${name}`).remove();
+              if (!engines[engname]) {
+                showError(`找不到这个搜索引擎 /engine ~ unset <b>${engname}</b>`);
+              }
+              if (searchEngine != engname) {
+                delete engines[engname];
+                $(`.context__engine--${engname}`).remove();
+              } else {
+                showError(`删不掉当前正在用的搜索引擎 /engine ~ unset <b>${engname}</b>`);
               }
             } else if (option == "reset") {
               engines = { ...egDF };
@@ -231,24 +262,32 @@ $text.on('keydown', (event: JQuery.KeyboardEventBase) => {
               localStorage.setItem("engine", "bing");
               $(".context__type--engine").remove();
               renderEngines();
+            } else {
+              showError(`不知道你要对搜索引擎干什么 /engine ~ <b>${htmlEscape(option)}</b>`);
             }
-            
+
             localStorage.setItem("engines", enKVpair(engines));
             break;
           case "/doc":
             subKw = kwSplits[1];
-            
-            if ($(`.doc-help__scope--${subKw}`)) {
+            if ($(`.doc-help__scope--${subKw}`).length) {
               $(`.doc-help__scope--${subKw}`).css({"display": "block"});
               activeDoc = subKw;
+            } else {
+              showError(`没有这个文档 /doc <b>${htmlEscape(subKw)}</b>`);
             }
             break;
           case "/disable-command":
             commandMode = false;
             break;
+          default:
+            showError(`不知道你想表达什么 /<b>${htmlEscape(rootKw.slice(1, -1))}</b>&lt;&lt;&lt;这里`);
+            break;
         }
         commandHelps[activePart].css({"display": "none"});
-      } catch (e) {}
+      } catch (e) {
+        showError("好像是参数没传对，再检查一下");
+      }
     } else {
       const query = encodeURIComponent(rawQuery) || ($(window).width() ?? 500 > 550 ? encodeURIComponent(rawHitokoto) : "");
       if (historyEnabled) {
