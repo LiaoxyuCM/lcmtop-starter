@@ -281,12 +281,12 @@ $text.on('keydown', (event: JQuery.KeyboardEventBase) => {
             commandMode = false;
             break;
           default:
-            showError(`不知道你想表达什么 /<b>${htmlEscape(rootKw.slice(1, -1))}</b>&lt;&lt;&lt;这里`);
+            showError(`不知道你想表达什么 /<b>${htmlEscape(rootKw.slice(1))}</b>`);
             break;
         }
         commandHelps[activePart].css({"display": "none"});
       } catch (e) {
-        showError("好像是参数没传对，再检查一下");
+        showError("好像是参数没传对，再检查一下", false);
       }
     } else {
       const query = encodeURIComponent(rawQuery) || ($(window).width() ?? 500 > 550 ? encodeURIComponent(rawHitokoto) : "");
