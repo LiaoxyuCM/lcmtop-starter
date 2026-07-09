@@ -10,7 +10,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       ${
         [
           ["theme &lt;color-theme&gt;", "设置颜色主题"],
-          ["history &lt;option&gt;", "设置历史记录"],
+          ["history &lt;option&gt;", "设置历史记录 (参照 /doc history)"],
           ["engine &lt;engine-name&gt;", "设置搜索引擎"],
           ["doc &lt;keyword&gt;", "查看详细内容"],
           ["disable-command", "关闭命令"]
@@ -42,7 +42,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
           ["disable", "停止记录历史"],
           ["clear", "清除历史"]
         ].map(
-          (history) => `<p>/history ${history[0]} <span class="description">${history[1]}</span></p>`
+          (historyOption) => `<p>/history ${historyOption[0]} <span class="description">${historyOption[1]}</span></p>`
         ).join("")
       }
     </div>
@@ -66,7 +66,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       [
         ["set-engines", "<p><code>name</code> 要求只能有英文字母,数字,下划线或横杠;</p><p><code>url</code> 不需要引号包裹,也不能包含空格(使用%20代替)</p>"],
         ["del-engines", "<p>只有要删除的搜索引擎不是你现在设置的搜索引擎, 才会执行删除</p>"],
-        ["history", "<p>关闭标签页后网页内保存的历史数据将会被清除(当然是因为功能还没写完)</p>"]
+        ["history", "<p>关闭标签页后网页内保存的历史数据将会被清除</p><p>按下↑或↓浏览当前会话的搜索历史</p>"]
       ].map(
         (doc) => `<div class="doc-help__lvl--sub doc-help__scope--${doc[0]}">${doc[1]}</div>`
       ).join("")
@@ -82,7 +82,7 @@ const $text = $(".eng-c");
 // Init
 let commandMode: boolean = true;
 let historyEnabled: boolean = Boolean(localStorage.getItem("history") ?? true);
-let history: string[] = [];
+let historyContent: string[] = [];
 let historyIdx: number = -1;
 let searchEngine: string = localStorage.getItem("engine") ?? "bing";
 document.body.className = "body__theme--"+(localStorage.getItem("starter-theme") || "dark");
@@ -121,7 +121,7 @@ const special: {"/theme": string[], "/history": Record<string, () => void>} = {
   "/history": {
     "enable": () => {historyEnabled = true; localStorage.setItem("history", ".")},
     "disable": () => {historyEnabled = false; localStorage.setItem("history", "")},
-    "clear": () => {history = []; historyIdx = -1;}
+    "clear": () => {historyContent = []; historyIdx = -1;}
   }
 }
 function enKVpair(data: Record<string, string>) {
@@ -179,7 +179,7 @@ function updateClock(){
   now.setTime(Date.now());
   baseText = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
   subText = `, ${month[now.getMonth()]} ${pad(now.getDate())}, ${now.getFullYear()}`;
-  $text.attr("placeholder", baseText + ($(window).width() ?? 500 > 220 ? subText : "") + ($(window).width() ?? 500 > 550 ? hitokoto : ""));
+  $text.attr("placeholder", baseText + (($(window).width() ?? 500) > 220 ? subText : "") + (($(window).width() ?? 500) > 550 ? hitokoto : ""));
   requestAnimationFrame(updateClock);
 }
 updateClock();
@@ -195,13 +195,13 @@ $text.on('keydown', (event: JQuery.KeyboardEventBase) => {
     $text.val("");
     if (historyEnabled) {
       historyIdx += 1;
-      if (history[historyIdx]) {
-        history.splice(historyIdx);
+      if (historyContent[historyIdx]) {
+        historyContent.splice(historyIdx);
       }
     }
     if (rawQuery.startsWith("/") && commandMode) {
       if (historyEnabled) {
-        history.push(rawQuery);
+        historyContent.push(rawQuery);
       }
       try {
         const kwSplits: string[] = rawQuery.split(" ");
@@ -289,22 +289,27 @@ $text.on('keydown', (event: JQuery.KeyboardEventBase) => {
         showError("好像是参数没传对，再检查一下", false);
       }
     } else {
-      const query = encodeURIComponent(rawQuery) || ($(window).width() ?? 500 > 550 ? encodeURIComponent(rawHitokoto) : "");
+      const chitokoto: string = (($(window).width() ?? 500) > 550 ? rawHitokoto : "");
+      const query: string = encodeURIComponent(rawQuery || chitokoto);
       if (historyEnabled) {
-        history.push(rawQuery || rawHitokoto);
+        if (rawQuery || chitokoto) {
+          historyContent.push(rawQuery || chitokoto);
+        } else {
+          historyIdx -= 1;
+        }
       }
       window.open(engines[searchEngine].replace(/%s/g, query), "_blank");
     }
   } else if (event.key === 'ArrowUp') {
-    if (history && historyIdx > 0 && $text.val()) {
+    if (historyContent && historyIdx > 0 && $text.val()) {
       historyIdx -= 1;
     }
-    $text.val(history[historyIdx]);
+    $text.val(historyContent[historyIdx]);
   } else if (event.key === 'ArrowDown') {
-    if (history && historyIdx < history.length-1 && $text.val()) {
+    if (historyContent && historyIdx < historyContent.length-1 && $text.val()) {
       historyIdx += 1;
     }
-    $text.val(history[historyIdx]);
+    $text.val(historyContent[historyIdx]);
   }
 });
 $text.on("input", () => {
