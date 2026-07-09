@@ -206,7 +206,7 @@ $text.on('keydown', (event: JQuery.KeyboardEventBase) => {
       try {
         const kwSplits: string[] = rawQuery.split(" ");
         const rootKw: string = kwSplits[0];
-        let subKw = "";
+        let subKw: string = "";
         switch (rootKw) {
           case "/theme":
             subKw = kwSplits[1];
@@ -320,7 +320,7 @@ $text.on("input", () => {
   rawQuery = String($text.val());
   commandHelps[activePart].css({"display": "none"});
   parts.forEach(part => {
-    const ptc = part ? (part == "engine-commands" ? "engine ~ " : part+" ") : "";
+    const ptc: string = part ? (part == "engine-commands" ? "engine ~ " : part+" ") : "";
     if (!commandHelpsLock && rawQuery.startsWith(`/${ptc}`)) {
       commandHelps[part].css({"display": "block"});
       activePart = part;
