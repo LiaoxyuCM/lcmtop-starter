@@ -15,7 +15,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
           ["doc &lt;keyword&gt;", "查看详细内容"],
           ["disable-command", "关闭命令"]
         ].map(
-          (cmd) => `<p>/${cmd[0]} <span class="description">${cmd[1]}</span></p>`
+          (cmd: string[]) => `<p>/${cmd[0]} <span class="description">${cmd[1]}</span></p>`
         ).join("")
       }
     </div>
@@ -31,7 +31,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
           ["sakura", "樱花"],
           ["aurora", "极光"]
         ].map(
-          (theme) => `<p>/theme ${theme[0]} <span class="description">${theme[1]}</span></p>`
+          (theme: string[]) => `<p>/theme ${theme[0]} <span class="description">${theme[1]}</span></p>`
         ).join("")
       }
     </div>
@@ -42,7 +42,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
           ["disable", "停止记录历史"],
           ["clear", "清除历史"]
         ].map(
-          (historyOption) => `<p>/history ${historyOption[0]} <span class="description">${historyOption[1]}</span></p>`
+          (historyOption: string[]) => `<p>/history ${historyOption[0]} <span class="description">${historyOption[1]}</span></p>`
         ).join("")
       }
     </div>
@@ -56,22 +56,13 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
           ["unset &lt;name&gt;", "删除搜索引擎 (参考: /doc del-engines)"],
           ["reset", "将配置的搜索引擎恢复到初始状态 (没有确认, <b>请三思而后行</b>)"]
         ].map(
-          (engine) => `<p>/engine ~ ${engine[0]} <span class="description">${engine[1]}</span></p>`
+          (engine: string[]) => `<p>/engine ~ ${engine[0]} <span class="description">${engine[1]}</span></p>`
         ).join("")
       }
     </div>
   </div>
   <div class="doc-help__lvl--root doc-help-doc">
-    ${
-      [
-        ["set-engines", "<p><code>name</code> 要求只能有英文字母,数字,下划线或横杠;</p><p><code>url</code> 不需要引号包裹,也不能包含空格(使用%20代替)</p>"],
-        ["del-engines", "<p>只有要删除的搜索引擎不是你现在设置的搜索引擎, 才会执行删除</p>"],
-        ["history", "<p>关闭标签页后网页内保存的历史数据将会被清除</p><p>按下↑或↓浏览当前会话的搜索历史</p>"]
-      ].map(
-        (doc) => `<div class="doc-help__lvl--sub doc-help__scope--${doc[0]}">${doc[1]}</div>`
-      ).join("")
-    }
-    <div class="doc-help__lvl--sub doc-help__scope--error">目前没有任何错误</div>
+    <div class="doc-help__lvl--sub"></div>
   </div>
 </main>
 `
@@ -91,7 +82,21 @@ let activePart: string = "";
 let commandHelps: Record<string, JQuery<HTMLElement>> = {};
 let commandHelpsLock: boolean = false;
 let rawQuery: string = "";
-let activeDoc: string = "";
+let docActive: boolean = false;
+let helpDocs: Record<string, {content: string, cmd/* 保留字段 */ : string}> = {
+  "set-engines": {
+    content: "<p><code>name</code> 要求只能有英文字母,数字,下划线或横杠;</p><p><code>url</code> 不需要引号包裹,也不能包含空格(使用%20代替)</p>",
+    cmd: "/engine ~ set "
+  },
+  "del-engines": {
+    content: "<p>只有要删除的搜索引擎不是你现在设置的搜索引擎, 才会执行删除</p>",
+    cmd: "/engine ~ unset "
+  },
+  "history": {
+    content: "<p>关闭标签页后网页内保存的历史数据将会被清除</p><p>按下↑或↓浏览当前会话的搜索历史</p>",
+    cmd: "/history "
+  }
+};
 const htmlEscape: (raw: string) => string = (raw: string) => raw.replace(/[&<>"'/]/g, (match) => {
   switch (match) {
     case '&': return '&amp;';
@@ -138,10 +143,10 @@ function deKVpair(text: string | null) {
   ) : text;
 }
 function showError(text: string, here: boolean = true) {
-  $(".doc-help__scope--error")
+  $(".doc-help__lvl--sub")
     .html(`错误：${text + (here ? "&lt;&lt;&lt;这里" : "")}`)
-    .css({"display": "block"});
-  activeDoc = "error";
+    .css({display: "block"});
+  docActive = true;
 }
 const egDF: Record<string, string> = {
   "baidu": "https://baidu.com/s?wd=%s",
@@ -186,9 +191,11 @@ updateClock();
 // Handle search
 $text.on('keydown', (event: JQuery.KeyboardEventBase) => {
   // do search and commands
-  if (activeDoc) {
-    $(`.doc-help__scope--${activeDoc}`).css({"display": "none"});
-    activeDoc = "";
+  if (docActive) {
+    $(`.doc-help__lvl--sub`)
+      .html("")
+      .css({display: "none"});
+    docActive = false;
   }
   if (event.key === 'Enter') {
     rawQuery = (String($text.val() ?? "")).trim();
@@ -236,14 +243,14 @@ $text.on('keydown', (event: JQuery.KeyboardEventBase) => {
               }
               break;
             }
-            const option = kwSplits[2];
-            const engname = kwSplits[3];
+            const option: string = kwSplits[2];
+            const engname: string = kwSplits[3];
             if (!(/^[A-Za-z0-9\-_]+$/.test(engname))) {
               showError(`<code>name</code>只能包含字母,数字,横杠或下划线 /engine ~ ${htmlEscape(option)} <b>${htmlEscape(engname)}</b>`);
               break;
             }
             if (option == "set") {
-              const url = kwSplits[4];
+              const url: string = kwSplits[4];
               engines[engname] = url;
               $(".command-help__scope--engine").append(`<p class="context__engine--${engname}">/engine ${engname}</p>`);
             } else if (option == "unset") {
@@ -270,9 +277,11 @@ $text.on('keydown', (event: JQuery.KeyboardEventBase) => {
             break;
           case "/doc":
             subKw = kwSplits[1];
-            if ($(`.doc-help__scope--${subKw}`).length) {
-              $(`.doc-help__scope--${subKw}`).css({"display": "block"});
-              activeDoc = subKw;
+            if (helpDocs[subKw]) {
+              $(`.doc-help__lvl--sub`)
+                .html(helpDocs[subKw].content)
+                .css({display: "block"});
+              docActive = true;
             } else {
               showError(`没有这个文档 /doc <b>${htmlEscape(subKw)}</b>`);
             }
@@ -301,11 +310,13 @@ $text.on('keydown', (event: JQuery.KeyboardEventBase) => {
       window.open(engines[searchEngine].replace(/%s/g, query), "_blank");
     }
   } else if (event.key === 'ArrowUp') {
+    event.preventDefault();
     if (historyContent && historyIdx > 0 && $text.val()) {
       historyIdx -= 1;
     }
     $text.val(historyContent[historyIdx]);
   } else if (event.key === 'ArrowDown') {
+    event.preventDefault();
     if (historyContent && historyIdx < historyContent.length-1 && $text.val()) {
       historyIdx += 1;
     }
