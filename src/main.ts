@@ -80,7 +80,6 @@ document.body.className = "body__theme--"+(localStorage.getItem("starter-theme")
 const parts: string[] = ["theme", "history", "engine-commands", "engine", ""];
 let activePart: string = "";
 let commandHelps: Record<string, JQuery<HTMLElement>> = {};
-let commandHelpsLock: boolean = false;
 let rawQuery: string = "";
 let docActive: boolean = false;
 let helpDocs: Record<string, {content: string, cmd/* 保留字段 */ : string}> = {
@@ -330,14 +329,13 @@ $text.on("input", () => {
   }
   rawQuery = String($text.val());
   commandHelps[activePart].css({"display": "none"});
-  parts.forEach(part => {
+  parts.some(part => {
     const ptc: string = part ? (part == "engine-commands" ? "engine ~ " : part+" ") : "";
-    if (!commandHelpsLock && rawQuery.startsWith(`/${ptc}`)) {
+    if (rawQuery.startsWith(`/${ptc}`)) {
       commandHelps[part].css({"display": "block"});
       activePart = part;
-      commandHelpsLock = true;
+      return true;
     }
+    return false;
   });
-    
-  commandHelpsLock = false;
 });
