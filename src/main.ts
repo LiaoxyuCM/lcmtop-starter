@@ -12,7 +12,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
           ["theme &lt;color-theme&gt;", "设置颜色主题"],
           ["history &lt;option&gt;", "设置历史记录 (参照 /doc history)"],
           ["engine &lt;engine-name&gt;", "设置搜索引擎"],
-          ["hitokoto &lt;option&gt;", "设置一言 (仅屏幕宽&gt;500px才会生效)"],
+          ["hitokoto &lt;option&gt;", "设置一言 (仅屏幕宽&gt;550px才会生效)"],
           ["doc &lt;keyword&gt;", "查看详细内容"],
           ["disable-command", "关闭命令"]
         ].map(
@@ -332,7 +332,7 @@ $text.on('keydown', (event: JQuery.KeyboardEventBase) => {
         }
         commandHelps[activePart].css({"display": "none"});
       } catch (e) {
-        showError("好像是参数没传对，再检查一下", false);
+        showError(`参数没传对: ${e}`, false);
       }
     } else {
       const chitokoto: string = ((($(window).width() ?? 500) > 550) && hitokotoAvailable ? rawHitokoto : "");
