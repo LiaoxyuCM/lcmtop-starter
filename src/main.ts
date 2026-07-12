@@ -338,7 +338,7 @@ $text.on('keydown', (event: JQuery.KeyboardEventBase) => {
       const chitokoto: string = ((($(window).width() ?? 500) > 550) && hitokotoAvailable ? rawHitokoto : "");
       const query: string = encodeURIComponent(rawQuery || chitokoto);
       if (historyEnabled) {
-        if (rawQuery || chitokoto) {
+        if ((rawQuery || chitokoto) && historyContent[historyContent.length-1] != (rawQuery || chitokoto)) {
           historyContent.push(rawQuery || chitokoto);
         } else {
           historyIdx -= 1;
