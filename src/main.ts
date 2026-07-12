@@ -12,6 +12,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
           ["theme &lt;color-theme&gt;", "设置颜色主题"],
           ["history &lt;option&gt;", "设置历史记录 (参照 /doc history)"],
           ["engine &lt;engine-name&gt;", "设置搜索引擎"],
+          ["hitokoto &lt;option&gt;", "设置一言 (仅屏幕宽&gt;500px才会生效)"],
           ["doc &lt;keyword&gt;", "查看详细内容"],
           ["disable-command", "关闭命令"]
         ].map(
@@ -46,6 +47,17 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         ).join("")
       }
     </div>
+    <div class="command-help__lvl--sub command-help__scope--hitokoto">
+      ${
+        [
+          ["show", "显示一言"],
+          ["hide", "隐藏一言"],
+          ["refresh", "刷新"]
+        ].map(
+          (hitokoto: string[]) => `<p>/hitokoto ${hitokoto[0]} <span class="description">${hitokoto[1]}</span></p>`
+        ).join("")
+      }
+    </div>
     <div class="command-help__lvl--sub command-help__scope--engine">
       <p>/engine ~ &lt;option&gt; &lt;parameter(s)&gt; <span class="description">添加/删除/修改搜索引擎</span></p>
     </div>
@@ -77,12 +89,13 @@ let historyContent: string[] = [];
 let historyIdx: number = -1;
 let searchEngine: string = localStorage.getItem("engine") ?? "bing";
 document.body.className = "body__theme--"+(localStorage.getItem("starter-theme") || "dark");
-const parts: string[] = ["theme", "history", "engine-commands", "engine", ""];
+const parts: string[] = ["theme", "history", "engine-commands", "engine", "hitokoto", ""];
 let activePart: string = "";
 let commandHelps: Record<string, JQuery<HTMLElement>> = {};
 let rawQuery: string = "";
+let hitokotoAvailable: boolean = Boolean(localStorage.getItem("hitokoto-available") ?? true);
 let docActive: boolean = false;
-let helpDocs: Record<string, {content: string, cmd/* 保留字段 */ : string}> = {
+let helpDocs: Record<string, {content: string, cmd: string}> = {
   "set-engines": {
     content: "<p><code>name</code> 要求只能有英文字母,数字,下划线或横杠;</p><p><code>url</code> 不需要引号包裹,也不能包含空格(使用%20代替)</p>",
     cmd: "/engine ~ set "
@@ -169,10 +182,14 @@ renderEngines();
 // Get hitokoto
 let hitokoto: string = '';
 let rawHitokoto: string = '';
-$.get("https://v1.hitokoto.cn/").done((data) => {
-  rawHitokoto = data.hitokoto;
-  hitokoto = ' - ' + rawHitokoto;
-}).fail((_) => {});
+function refreshHitokoto() {
+  $.get("https://v1.hitokoto.cn/").done((data) => {
+    rawHitokoto = data.hitokoto;
+    hitokoto = ' - ' + rawHitokoto;
+  }).fail((_) => {});
+}
+
+refreshHitokoto();
 // Setup placeholder
 const month: string[] = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const now: Date = new Date();
@@ -183,7 +200,12 @@ function updateClock(){
   now.setTime(Date.now());
   baseText = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
   subText = `, ${month[now.getMonth()]} ${pad(now.getDate())}, ${now.getFullYear()}`;
-  $text.attr("placeholder", baseText + (($(window).width() ?? 500) > 220 ? subText : "") + (($(window).width() ?? 500) > 550 ? hitokoto : ""));
+  $text.attr(
+    "placeholder",
+    baseText
+    + (($(window).width() ?? 500) > 220 ? subText : "")
+    + ((($(window).width() ?? 500) > 550) && hitokotoAvailable ? hitokoto : "")
+  );
   requestAnimationFrame(updateClock);
 }
 updateClock();
@@ -274,12 +296,28 @@ $text.on('keydown', (event: JQuery.KeyboardEventBase) => {
 
             localStorage.setItem("engines", enKVpair(engines));
             break;
+          case "/hitokoto":
+            subKw = kwSplits[1];
+            if (subKw == "show") {
+              hitokotoAvailable = true;
+              localStorage.setItem("hitokoto-available", ".");
+            } else if (subKw == "hide") {
+              hitokotoAvailable = false;
+              localStorage.setItem("hitokoto-available", "");
+            } else if (subKw == "refresh") {
+              refreshHitokoto();
+            } else {
+              showError(`不知道你要怎么设置一言 /hitokoto <b>${htmlEscape(subKw)}</b>`);
+            }
+            break;
           case "/doc":
             subKw = kwSplits[1];
             if (helpDocs[subKw]) {
               $(`.doc-help__lvl--sub`)
                 .html(helpDocs[subKw].content)
                 .css({display: "block"});
+
+              $text.val(helpDocs[subKw].cmd);
               docActive = true;
             } else {
               showError(`没有这个文档 /doc <b>${htmlEscape(subKw)}</b>`);
@@ -297,7 +335,7 @@ $text.on('keydown', (event: JQuery.KeyboardEventBase) => {
         showError("好像是参数没传对，再检查一下", false);
       }
     } else {
-      const chitokoto: string = (($(window).width() ?? 500) > 550 ? rawHitokoto : "");
+      const chitokoto: string = ((($(window).width() ?? 500) > 550) && hitokotoAvailable ? rawHitokoto : "");
       const query: string = encodeURIComponent(rawQuery || chitokoto);
       if (historyEnabled) {
         if (rawQuery || chitokoto) {
