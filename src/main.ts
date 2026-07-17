@@ -20,17 +20,12 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         ).join("")
       }
     </div>
-    <div class="command-help__lvl--sub command-help__scope--theme command-help__desc-align--right">
+    <div class="command-help__lvl--sub command-help__scope--theme">
       ${
         [
-          ["light", "亮色"],
-          ["dark", "暗色"],
-          ["blue", "海蓝"],
-          ["warm", "暖阳"],
-          ["forest", "森林"],
-          ["twilight", "暮光"],
-          ["sakura", "樱花"],
-          ["aurora", "极光"]
+          ["&lt;color 输入框高亮&gt; &lt;color 输入文本&gt; &lt;color 输入框&gt; &lt;color 背景&gt;", "自定义 (参数详情见/doc colorpattern)"],
+          ["light", "亮色 (fff eee 999 121212)"],
+          ["dark", "暗色 (000 111 666 ededed)"]
         ].map(
           (theme: string[]) => `<p>/theme ${theme[0]} <span class="description">${theme[1]}</span></p>`
         ).join("")
@@ -88,7 +83,13 @@ let historyEnabled: boolean = Boolean(localStorage.getItem("history") ?? true);
 let historyContent: string[] = [];
 let historyIdx: number = -1;
 let searchEngine: string = localStorage.getItem("engine") ?? "bing";
-document.body.className = "body__theme--"+(localStorage.getItem("starter-theme") || "dark");
+let starterTheme: string = localStorage.getItem("starter-theme");
+if (!["light", "dark", "custom"].includes(starterTheme)) {
+  localStorage.setItem("starter-theme", "dark");
+  starterTheme = localStorage.getItem("starter-theme");
+}
+document.body.className = "body__theme--"+(starterTheme || "dark");
+const customTheme: string = localStorage.getItem("custom-theme") ?? "000 111 666 ededed";
 const parts: string[] = ["theme", "history", "engine-commands", "engine", "hitokoto", ""];
 let activePart: string = "";
 let commandHelps: Record<string, JQuery<HTMLElement>> = {};
@@ -107,6 +108,10 @@ let helpDocs: Record<string, {content: string, cmd: string}> = {
   "history": {
     content: "<p>关闭标签页后网页内保存的历史数据将会被清除</p><p>按下↑或↓浏览当前会话的搜索历史</p>",
     cmd: "/history "
+  },
+  "colorpattern": {
+    content: "<p>参数color可以填 rrggbb型 或者 rgb型 (都不带#) 但不支持填颜色短语</p>",
+    cmd: "/theme "
   }
 };
 const htmlEscape: (raw: string) => string = (raw: string) => raw.replace(/[&<>"'/]/g, (match) => {
@@ -127,13 +132,7 @@ parts.forEach(part => {
 const special: {"/theme": string[], "/history": Record<string, () => void>} = {
   "/theme": [
     "light",
-    "dark",
-    "blue",
-    "warm",
-    "forest",
-    "twilight",
-    "sakura",
-    "aurora"
+    "dark"
   ],
   "/history": {
     "enable": () => {historyEnabled = true; localStorage.setItem("history", ".")},
@@ -178,7 +177,15 @@ function renderEngines(){
   });
   $(".command-help__scope--engine").append(engineHTML);
 }
+function renderBgCustomTheme(theme: string[]) {
+  for (let i: number = 0; i < 4; i++) {
+    document.body.style.setProperty(`--c-${i+1}`, theme[i] ? `#${theme[i]}` : "");
+  }
+}
 renderEngines();
+if (starterTheme == "custom") {
+  renderBgCustomTheme(customTheme.split(" "));
+}
 // Get hitokoto
 let hitokoto: string = '';
 let rawHitokoto: string = '';
@@ -235,12 +242,42 @@ $text.on('keydown', (event: JQuery.KeyboardEventBase) => {
         const kwSplits: string[] = rawQuery.split(" ");
         const rootKw: string = kwSplits[0];
         let subKw: string = "";
+        const colorpattern = /^[\da-f]{3}([\da-f]{3})?$/i;
         switch (rootKw) {
           case "/theme":
             subKw = kwSplits[1];
             if (special[rootKw].includes(subKw)) {
+              if (localStorage.getItem("starter-theme") == "custom") {
+                renderBgCustomTheme(["", "", "", ""]);
+              }
               document.body.className = "body__theme--"+subKw;
               localStorage.setItem("starter-theme", subKw);
+            } else if (colorpattern.test(kwSplits[1])) {
+              if (
+                 !colorpattern.test(kwSplits[2])
+              || !colorpattern.test(kwSplits[3])
+              || !colorpattern.test(kwSplits[4])
+              ) {
+                let nErr: number = 1;
+                let nNerr: number[] = [];
+                for (let i: number = 2; i < 5; i++) {
+                  if (colorpattern.test(kwSplits[i])) {
+                    nNerr.push(i);
+                  } else {
+                    nErr = i;
+                    break;
+                  }
+                }
+                showError(`颜色不合法 /theme ${kwSplits[1]} ${
+                  nNerr.map((i: number) => kwSplits[i] + " ").join("")
+                }<b>${kwSplits[nErr]}</b>`)
+              } else {
+                document.body.className = "body__theme--custom";
+                const themeLs: string[] = [...kwSplits].slice(1);
+                renderBgCustomTheme(themeLs);
+                localStorage.setItem("starter-theme", "custom");
+                localStorage.setItem("custom-theme", themeLs.join(" "));
+              }
             } else {
               showError(`不知道你想设什么主题 /theme <b>${htmlEscape(subKw)}</b>`);
             }
