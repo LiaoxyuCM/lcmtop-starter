@@ -83,10 +83,22 @@ let historyEnabled: boolean = Boolean(localStorage.getItem("history") ?? true);
 let historyContent: string[] = [];
 let historyIdx: number = -1;
 let searchEngine: string = localStorage.getItem("engine") ?? "bing";
-let starterTheme: string = localStorage.getItem("starter-theme");
-if (!["light", "dark", "custom"].includes(starterTheme)) {
+const special: {"/theme": string[], "/history": Record<string, () => void>} = {
+  "/theme": [
+    "light",
+    "dark"
+  ],
+  "/history": {
+    "enable": () => {historyEnabled = true; localStorage.setItem("history", ".")},
+    "disable": () => {historyEnabled = false; localStorage.setItem("history", "")},
+    "clear": () => {historyContent = []; historyIdx = -1;}
+  }
+}
+let starterTheme: string = localStorage.getItem("starter-theme") ?? "dark";
+const cTheme: string[] = [...special["/theme"], "custom"];
+if (!cTheme.includes(starterTheme)) {
   localStorage.setItem("starter-theme", "dark");
-  starterTheme = localStorage.getItem("starter-theme");
+  starterTheme = localStorage.getItem("starter-theme") ?? "dark";
 }
 document.body.className = "body__theme--"+(starterTheme || "dark");
 const customTheme: string = localStorage.getItem("custom-theme") ?? "000 111 666 ededed";
@@ -125,21 +137,9 @@ const htmlEscape: (raw: string) => string = (raw: string) => raw.replace(/[&<>"'
     default: return match;
   }
 });
-
 parts.forEach(part => {
   commandHelps[part] = $(`.command-help__scope--${part}`);
 });
-const special: {"/theme": string[], "/history": Record<string, () => void>} = {
-  "/theme": [
-    "light",
-    "dark"
-  ],
-  "/history": {
-    "enable": () => {historyEnabled = true; localStorage.setItem("history", ".")},
-    "disable": () => {historyEnabled = false; localStorage.setItem("history", "")},
-    "clear": () => {historyContent = []; historyIdx = -1;}
-  }
-}
 function enKVpair(data: Record<string, string>) {
   return Object.entries(data)
     .map(([key, value]) => `${key} ${value}`)
@@ -268,9 +268,9 @@ $text.on('keydown', (event: JQuery.KeyboardEventBase) => {
                     break;
                   }
                 }
-                showError(`颜色不合法 /theme ${kwSplits[1]} ${
-                  nNerr.map((i: number) => kwSplits[i] + " ").join("")
-                }<b>${kwSplits[nErr]}</b>`)
+                showError(`颜色不合法 /theme ${htmlEscape(kwSplits[1])} ${
+                  htmlEscape(nNerr.map((i: number) => kwSplits[i] + " ").join(""))
+                }<b>${htmlEscape(kwSplits[nErr])}</b>`)
               } else {
                 document.body.className = "body__theme--custom";
                 const themeLs: string[] = [...kwSplits].slice(1);
