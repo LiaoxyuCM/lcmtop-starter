@@ -83,25 +83,20 @@ let historyEnabled: boolean = Boolean(localStorage.getItem("history") ?? true);
 let historyContent: string[] = [];
 let historyIdx: number = -1;
 let searchEngine: string = localStorage.getItem("engine") ?? "bing";
-const special: {"/theme": string[], "/history": Record<string, () => void>} = {
-  "/theme": [
-    "light",
-    "dark"
-  ],
+const special: {"/theme": Record<string, string[]>, "/history": Record<string, () => void>} = {
+  "/theme": {
+    light: ["000", "111", "666", "ededed"],
+    dark:  ["fff", "eee", "999", "121212"]
+  },
   "/history": {
-    "enable": () => {historyEnabled = true; localStorage.setItem("history", ".")},
-    "disable": () => {historyEnabled = false; localStorage.setItem("history", "")},
-    "clear": () => {historyContent = []; historyIdx = -1;}
+    enable: () => {historyEnabled = true; localStorage.setItem("history", ".")},
+    disable: () => {historyEnabled = false; localStorage.setItem("history", "")},
+    clear: () => {historyContent = []; historyIdx = -1;}
   }
 }
-let starterTheme: string = localStorage.getItem("starter-theme") ?? "dark";
-const cTheme: string[] = [...special["/theme"], "custom"];
-if (!cTheme.includes(starterTheme)) {
-  localStorage.setItem("starter-theme", "dark");
-  starterTheme = localStorage.getItem("starter-theme") ?? "dark";
-}
-document.body.className = "body__theme--"+(starterTheme || "dark");
-const customTheme: string = localStorage.getItem("custom-theme") ?? "000 111 666 ededed";
+let customTheme: string[] = (
+  localStorage.getItem("custom-theme") ?? "fff eee 999 121212"
+).split(" ");
 const parts: string[] = ["theme", "history", "engine-commands", "engine", "hitokoto", ""];
 let activePart: string = "";
 let commandHelps: Record<string, JQuery<HTMLElement>> = {};
@@ -110,7 +105,7 @@ let hitokotoAvailable: boolean = Boolean(localStorage.getItem("hitokoto-availabl
 let docActive: boolean = false;
 let helpDocs: Record<string, {content: string, cmd: string}> = {
   "set-engines": {
-    content: "<p><code>name</code> 要求只能有英文字母,数字,下划线或横杠;</p><p><code>url</code> 不需要引号包裹,也不能包含空格(使用%20代替)</p>",
+    content: "<p>name 要求只能有英文字母,数字,下划线或横杠;<br>url 不需要引号包裹,也不能包含空格(使用%20代替)</p>",
     cmd: "/engine ~ set "
   },
   "del-engines": {
@@ -118,11 +113,11 @@ let helpDocs: Record<string, {content: string, cmd: string}> = {
     cmd: "/engine ~ unset "
   },
   "history": {
-    content: "<p>关闭标签页后网页内保存的历史数据将会被清除</p><p>按下↑或↓浏览当前会话的搜索历史</p>",
+    content: "<p>关闭标签页后网页内保存的历史数据将会被清除<br>按下↑或↓浏览当前会话的搜索历史</p>",
     cmd: "/history "
   },
   "colorpattern": {
-    content: "<p>参数color可以填 rrggbb型 或者 rgb型 (都不带#) 但不支持填颜色短语</p>",
+    content: "<p>参数color可以填 rrggbb型 或者 rgb型 (都不带#) 但不支持填颜色短语<br>可以填 ~ 代表当前颜色<br>exp. /theme ~ ~ ~ 000</p>",
     cmd: "/theme "
   }
 };
@@ -183,9 +178,7 @@ function renderBgCustomTheme(theme: string[]) {
   }
 }
 renderEngines();
-if (starterTheme == "custom") {
-  renderBgCustomTheme(customTheme.split(" "));
-}
+renderBgCustomTheme(customTheme);
 // Get hitokoto
 let hitokoto: string = '';
 let rawHitokoto: string = '';
@@ -242,16 +235,15 @@ $text.on('keydown', (event: JQuery.KeyboardEventBase) => {
         const kwSplits: string[] = rawQuery.split(" ");
         const rootKw: string = kwSplits[0];
         let subKw: string = "";
-        const colorpattern = /^[\da-f]{3}([\da-f]{3})?$/i;
+        const colorpattern: RegExp = /^[\da-f]{3}([\da-f]{3})?$|^\~$/i;
         switch (rootKw) {
           case "/theme":
             subKw = kwSplits[1];
-            if (special[rootKw].includes(subKw)) {
-              if (localStorage.getItem("starter-theme") == "custom") {
-                renderBgCustomTheme(["", "", "", ""]);
-              }
-              document.body.className = "body__theme--"+subKw;
-              localStorage.setItem("starter-theme", subKw);
+            if (special[rootKw][subKw]) {
+              const themeTemp: string[] = [...special[rootKw][subKw]];
+              renderBgCustomTheme(themeTemp);
+              customTheme = [...themeTemp];
+              localStorage.setItem("custom-theme", themeTemp.join(" "));
             } else if (colorpattern.test(kwSplits[1])) {
               if (
                  !colorpattern.test(kwSplits[2])
@@ -272,10 +264,15 @@ $text.on('keydown', (event: JQuery.KeyboardEventBase) => {
                   htmlEscape(nNerr.map((i: number) => kwSplits[i] + " ").join(""))
                 }<b>${htmlEscape(kwSplits[nErr])}</b>`)
               } else {
-                document.body.className = "body__theme--custom";
-                const themeLs: string[] = [...kwSplits].slice(1);
+                const themeLs: string[] = [...kwSplits].slice(1).map((clr: string, idx: number) => {
+                  if (clr == "~") {
+                    return customTheme[idx];
+                  } else {
+                    return clr;
+                  }
+                });
                 renderBgCustomTheme(themeLs);
-                localStorage.setItem("starter-theme", "custom");
+                customTheme = [...themeLs]
                 localStorage.setItem("custom-theme", themeLs.join(" "));
               }
             } else {
