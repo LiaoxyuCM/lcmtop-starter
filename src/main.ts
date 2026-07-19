@@ -7,18 +7,28 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   </div>
   <div class="command-help__lvl--root">
     <div class="command-help__lvl--sub command-help__scope--">
-      ${
-        [
-          ["theme &lt;color-theme&gt;", "设置颜色主题"],
-          ["history &lt;option&gt;", "设置历史记录 (参照 /doc history)"],
-          ["engine &lt;engine-name&gt;", "设置搜索引擎"],
-          ["hitokoto &lt;option&gt;", "设置一言 (仅屏幕宽&gt;550px才会生效)"],
-          ["doc &lt;keyword&gt;", "查看详细内容"],
-          ["disable-command", "关闭命令"]
-        ].map(
-          (cmd: string[]) => `<p>/${cmd[0]} <span class="description">${cmd[1]}</span></p>`
-        ).join("")
-      }
+      <div class="command-help__layout--root">
+        ${
+          [
+            [
+              ["theme &lt;color-theme&gt;", "设置颜色主题"],
+              ["history &lt;option&gt;", "设置历史记录 (参照 /doc history)"],
+              ["engine &lt;engine-name&gt;", "设置搜索引擎"]
+            ],
+            [
+              ["hitokoto &lt;option&gt;", "设置一言 (仅屏幕宽&gt;550px才会生效)"],
+              ["doc &lt;keyword&gt;", "查看详细内容"],
+              ["disable-command", "关闭命令"]
+            ]
+          ].map(
+            (layout: string[][]) => (
+              `<div class="command-help__layout--sub">${layout.map(
+                (cmd: string[]) => `<p>/${cmd[0]} <span class="description">${cmd[1]}</span></p>`
+              ).join("")}</div>`
+            )
+          ).join("")
+        }
+      </div>
     </div>
     <div class="command-help__lvl--sub command-help__scope--theme">
       ${
@@ -121,7 +131,7 @@ let helpDocs: Record<string, {content: string, cmd: string}> = {
     cmd: "/theme "
   }
 };
-const htmlEscape: (raw: string) => string = (raw: string) => raw.replace(/[&<>"'/]/g, (match) => {
+const htmlEscape: (raw: string) => string = (raw: string) => raw.replace(/[&<>"'/]/g, (match: string) => {
   switch (match) {
     case '&': return '&amp;';
     case '<': return '&lt;';

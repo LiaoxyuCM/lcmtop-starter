@@ -95,6 +95,27 @@ code {
   }
 }
 
+@mixin layout($dir) {
+  display: flex;
+  flex: 1;
+  flex-direction: $dir;
+}
+
+.command-help {
+  &__layout {
+    &--root {
+      @include layout(row);
+    }
+    &--sub {
+      @include layout(column);
+
+      p {
+        margin-bottom: 0;
+      }
+    }
+  }
+}
+
 .command-help,
 .doc-help {
   &__lvl {
@@ -136,5 +157,14 @@ $mobile:(880px 500px),
         (110px 50px);
 
 @each $maxwidth, $setwidth in $mobile {
-  @media (max-width:#{$maxwidth}){ .eng-c {width: #{$setwidth}} }
+  @media (max-width:#{$maxwidth}){
+    .eng-c {width: #{$setwidth}}
+    @if $maxwidth == 550px {
+      .command-help {
+        &__layout--root {
+          flex-direction: column;
+        }
+      }
+    }
+  }
 }

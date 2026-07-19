@@ -1,3 +1,3 @@
 # lcmtop_starter
 
-The starter, uses jQuery framework.
+能搜就行.
