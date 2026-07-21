@@ -13,11 +13,12 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
             [
               ["theme &lt;color-theme&gt;", "设置颜色主题"],
               ["history &lt;option&gt;", "设置历史记录 (参照 /doc history)"],
-              ["engine &lt;engine-name&gt;", "设置搜索引擎"]
+              ["engine &lt;engine-name&gt;", "设置搜索引擎"],
+              ["/ &lt;keywords&gt;", "正常搜索以 \"/\" 开头的关键词 (前两个\"/\"会被合并为一个\"/\")"]
             ],
             [
               ["hitokoto &lt;option&gt;", "设置一言 (仅屏幕宽&gt;550px才会生效)"],
-              ["doc &lt;keyword&gt;", "查看详细内容"],
+              ["doc &lt;keyword&gt;", "查看文档 (更多起始页技巧已在 /doc tricks 中阐明)"],
               ["disable-command", "关闭命令"]
             ]
           ].map(
@@ -41,7 +42,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         ).join("")
       }
     </div>
-    <div class="command-help__lvl--sub command-help__scope--history">
+    <div class="command-help__lvl--sub command-help__scope--history command-help__desc-align--right">
       ${
         [
           ["enable", "记录历史"],
@@ -52,7 +53,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         ).join("")
       }
     </div>
-    <div class="command-help__lvl--sub command-help__scope--hitokoto">
+    <div class="command-help__lvl--sub command-help__scope--hitokoto command-help__desc-align--right">
       ${
         [
           ["show", "显示一言"],
@@ -82,7 +83,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <div class="doc-help__lvl--sub"></div>
   </div>
 </main>
-`
+`;
 //////////////////////////
 import $ from "jquery";
 // Focus input bar
@@ -129,19 +130,25 @@ let helpDocs: Record<string, {content: string, cmd: string}> = {
   "colorpattern": {
     content: "<p>参数color可以填 rrggbb型 或者 rgb型 (都不带#) 但不支持填颜色短语<br>可以填 ~ 代表当前颜色<br>exp. /theme ~ ~ ~ 000</p>",
     cmd: "/theme "
+  },
+  "tricks": {
+    content: "<p>欢迎使用lcmtop-starter, 下面是一些使用技巧<br>输入框默认为聚焦状态, 此时可以按ESC失焦<br>在失焦状态下, 按下 \"/\" 聚焦输入框<br>聚焦状态下再次按下 \"/\" 可以进入命令模式 (最明显的就是下面的命令补全)<br>关于历史记录的操作方法已在 /doc history 中阐明</p>",
+    cmd: ""
   }
-};
-const htmlEscape: (raw: string) => string = (raw: string) => raw.replace(/[&<>"'/]/g, (match: string) => {
-  switch (match) {
-    case '&': return '&amp;';
-    case '<': return '&lt;';
-    case '>': return '&gt;';
-    case '"': return '&quot;';
-    case "'": return '&#x27;';
-    case '/': return '&#x2F;';
-    default: return match;
-  }
-});
+}
+function htmlEscape (raw: string): string {
+  return raw.replace(/[&<>"'/]/g, (match: string) => {
+    switch (match) {
+      case '&': return '&amp;';
+      case '<': return '&lt;';
+      case '>': return '&gt;';
+      case '"': return '&quot;';
+      case "'": return '&#x27;';
+      case '/': return '&#x2F;';
+      default: return match;
+    }
+  });
+}
 parts.forEach(part => {
   commandHelps[part] = $(`.command-help__scope--${part}`);
 });
@@ -228,7 +235,10 @@ $text.on('keydown', (event: JQuery.KeyboardEventBase) => {
       .css({display: "none"});
     docActive = false;
   }
-  if (event.key === 'Enter') {
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    $text.blur();
+  } else if (event.key === 'Enter') {
     rawQuery = (String($text.val() ?? "")).trim();
     $text.val("");
     if (historyEnabled) {
@@ -246,7 +256,10 @@ $text.on('keydown', (event: JQuery.KeyboardEventBase) => {
         const rootKw: string = kwSplits[0];
         let subKw: string = "";
         const colorpattern: RegExp = /^[\da-f]{3}([\da-f]{3})?$|^\~$/i;
-        switch (rootKw) {
+        if (rawQuery.startsWith("//")) {
+          const query: string = encodeURIComponent(rawQuery.slice(1));
+          window.open(engines[searchEngine].replace(/%s/g, query), "_blank");
+        } else switch (rootKw) {
           case "/theme":
             subKw = kwSplits[1];
             if (special[rootKw][subKw]) {
@@ -272,7 +285,7 @@ $text.on('keydown', (event: JQuery.KeyboardEventBase) => {
                 }
                 showError(`颜色不合法 /theme ${htmlEscape(kwSplits[1])} ${
                   htmlEscape(nNerr.map((i: number) => kwSplits[i] + " ").join(""))
-                }<b>${htmlEscape(kwSplits[nErr])}</b>`)
+                }<b>${htmlEscape(kwSplits[nErr])}</b>`);
               } else {
                 const themeLs: string[] = [...kwSplits].slice(1).map((clr: string, idx: number) => {
                   if (clr == "~") {
@@ -282,7 +295,7 @@ $text.on('keydown', (event: JQuery.KeyboardEventBase) => {
                   }
                 });
                 renderBgCustomTheme(themeLs);
-                customTheme = [...themeLs]
+                customTheme = [...themeLs];
                 localStorage.setItem("custom-theme", themeLs.join(" "));
               }
             } else {
@@ -421,3 +434,11 @@ $text.on("input", () => {
     return false;
   });
 });
+
+$(document.body).on("keydown", (event: JQuery.KeyboardEventBase) => {
+  if (event.key == "/" && (!$text.is(":focus"))) {
+    event.preventDefault();
+    $text.focus();
+  }
+});
+
