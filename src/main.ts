@@ -69,7 +69,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       ${
         [
           ["export", "导出数据"],
-          ["import &lt;data&gt;", "导入数据 (由于技术原因, 暂不支持文件上传)"]
+          ["import &lt;data 粘贴导出的JSON&gt;", "导入数据 (由于技术原因, 暂不支持文件上传)"]
         ].map(
           (dataOption: string[]) => `<p>/data ${dataOption[0]} <span class="description">${dataOption[1]}</span></p>`
         ).join("")
@@ -416,11 +416,11 @@ $text.on('keydown', (event: JQuery.KeyboardEventBase) => {
                 }
                 const config = importedData.starter;
 
-                localStorage.setItem("history", config.history);
-                localStorage.setItem("engine", config.engine);
-                localStorage.setItem("engines", config.engines);
-                localStorage.setItem("hitokoto-available", config.hitokoto);
-                localStorage.setItem("custom-theme", config.theme);
+                localStorage.setItem("history", config.history ?? localStorage.getItem("history"));
+                localStorage.setItem("engine", config.engine ?? localStorage.getItem("engine"));
+                localStorage.setItem("engines", config.engines ?? localStorage.getItem("engines"));
+                localStorage.setItem("hitokoto-available", config.hitokoto ?? localStorage.getItem("hitokoto-available"));
+                localStorage.setItem("custom-theme", config.theme ?? localStorage.getItem("custom-theme"));
 
                 $(".doc-help__lvl--sub")
                   .html("配置已导入, 请刷新(Ctrl/Cmd+R)以生效")
@@ -433,7 +433,6 @@ $text.on('keydown', (event: JQuery.KeyboardEventBase) => {
             break;
           case "/disable-command":
             commandMode = false;
-                    
             break;
           default:
             showError(`不知道你想表达什么 /<b>${htmlEscape(rootKw.slice(1))}</b>`);
