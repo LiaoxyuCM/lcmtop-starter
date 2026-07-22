@@ -14,12 +14,13 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
               ["theme &lt;color-theme&gt;", "设置颜色主题"],
               ["history &lt;option&gt;", "设置历史记录 (参照 /doc history)"],
               ["engine &lt;engine-name&gt;", "设置搜索引擎"],
-              ["/ &lt;keywords&gt;", "正常搜索以 \"/\" 开头的关键词 (前两个\"/\"会被合并为一个\"/\")"]
+              ["data &lt;option&gt;", "导入/导出数据"]
             ],
             [
               ["hitokoto &lt;option&gt;", "设置一言 (仅屏幕宽&gt;550px才会生效)"],
               ["doc &lt;keyword&gt;", "查看文档 (更多起始页技巧已在 /doc tricks 中阐明)"],
-              ["disable-command", "关闭命令"]
+              ["disable-command", "关闭命令"],
+              ["/&lt;keywords&gt;", "正常搜索以 \"/\" 开头的关键词 (前两个\"/\"会被合并为一个\"/\")"]
             ]
           ].map(
             (layout: string[][]) => (
@@ -64,6 +65,16 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         ).join("")
       }
     </div>
+    <div class="command-help__lvl--sub command-help__scope--data">
+      ${
+        [
+          ["export", "导出数据"],
+          ["import &lt;data&gt;", "导入数据 (由于技术原因, 暂不支持文件上传)"]
+        ].map(
+          (dataOption: string[]) => `<p>/data ${dataOption[0]} <span class="description">${dataOption[1]}</span></p>`
+        ).join("")
+      }
+    </div>
     <div class="command-help__lvl--sub command-help__scope--engine">
       <p>/engine ~ &lt;option&gt; &lt;parameter(s)&gt; <span class="description">添加/删除/修改搜索引擎</span></p>
     </div>
@@ -83,7 +94,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <div class="doc-help__lvl--sub"></div>
   </div>
 </main>
-`;
+`.replace(/\n\s*/g, "");
 //////////////////////////
 import $ from "jquery";
 // Focus input bar
@@ -108,7 +119,7 @@ const special: {"/theme": Record<string, string[]>, "/history": Record<string, (
 let customTheme: string[] = (
   localStorage.getItem("custom-theme") ?? "fff eee 999 121212"
 ).split(" ");
-const parts: string[] = ["theme", "history", "engine-commands", "engine", "hitokoto", ""];
+const parts: string[] = ["theme", "history", "engine-commands", "engine", "hitokoto", "data", ""];
 let activePart: string = "";
 let commandHelps: Record<string, JQuery<HTMLElement>> = {};
 let rawQuery: string = "";
@@ -149,7 +160,7 @@ function htmlEscape (raw: string): string {
     }
   });
 }
-parts.forEach(part => {
+parts.forEach((part: string) => {
   commandHelps[part] = $(`.command-help__scope--${part}`);
 });
 function enKVpair(data: Record<string, string>) {
@@ -380,8 +391,49 @@ $text.on('keydown', (event: JQuery.KeyboardEventBase) => {
               showError(`没有这个文档 /doc <b>${htmlEscape(subKw)}</b>`);
             }
             break;
+          case "/data":
+            subKw = kwSplits[1];
+            if (subKw == "export") {
+              const data2export: string = JSON.stringify({starter:{
+                history: historyEnabled ? "." : "",
+                engine: searchEngine,
+                engines: enKVpair(engines),
+                hitokoto: hitokotoAvailable ? "." : "",
+                theme: customTheme.join(" ")
+              }});
+
+              const blob: Blob = new Blob([data2export], {type: 'application/json'});
+              const anchor: HTMLAnchorElement = document.createElement('a');
+              anchor.href = URL.createObjectURL(blob);
+              anchor.download = 'starterdata.json';
+              anchor.click();
+            } else if (subKw === "import") {
+              try {
+                const importedData = JSON.parse(rawQuery.slice(13));
+                if (!importedData.starter) {
+                  showError('无效的配置文件: 缺少 starter 字段', false);
+                  return;
+                }
+                const config = importedData.starter;
+
+                localStorage.setItem("history", config.history);
+                localStorage.setItem("engine", config.engine);
+                localStorage.setItem("engines", config.engines);
+                localStorage.setItem("hitokoto-available", config.hitokoto);
+                localStorage.setItem("custom-theme", config.theme);
+
+                $(".doc-help__lvl--sub")
+                  .html("配置已导入, 请刷新(Ctrl/Cmd+R)以生效")
+                  .css({display: "block"});
+                docActive = true;
+              } catch (_) {
+                showError("解析失败", false);
+              }
+            }
+            break;
           case "/disable-command":
             commandMode = false;
+                    
             break;
           default:
             showError(`不知道你想表达什么 /<b>${htmlEscape(rootKw.slice(1))}</b>`);
