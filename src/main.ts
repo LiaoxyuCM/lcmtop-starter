@@ -68,7 +68,8 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <div class="command-help__lvl--sub command-help__scope--data">
       ${
         [
-          ["export", "导出数据"],
+          ["export clipboard", "导出数据至剪贴板"],
+          ["export file", "导出数据并下载成文件"],
           ["import &lt;data 粘贴导出的JSON&gt;", "导入数据 (由于技术原因, 暂不支持文件上传)"]
         ].map(
           (dataOption: string[]) => `<p>/data ${dataOption[0]} <span class="description">${dataOption[1]}</span></p>`
@@ -401,13 +402,28 @@ $text.on('keydown', (event: JQuery.KeyboardEventBase) => {
                 hitokoto: hitokotoAvailable ? "." : "",
                 theme: customTheme.join(" ")
               }});
-
-              const blob: Blob = new Blob([data2export], {type: 'application/json'});
-              const anchor: HTMLAnchorElement = document.createElement('a');
-              anchor.href = URL.createObjectURL(blob);
-              anchor.download = 'starterdata.json';
-              anchor.click();
-            } else if (subKw === "import") {
+              if (kwSplits[2] == "file") {
+                const blob: Blob = new Blob([data2export], {type: 'application/json'});
+                const anchor: HTMLAnchorElement = document.createElement('a');
+                anchor.href = URL.createObjectURL(blob);
+                anchor.download = 'starterdata.json';
+                anchor.click();
+              } else if (kwSplits[2] == "clipboard") {
+                setTimeout(async () => {
+                  if (navigator.clipboard) {
+                    await navigator.clipboard.writeText(data2export);
+                    $(".doc-help__lvl--sub")
+                      .html("已复制到剪贴板")
+                      .css({display: "block"});
+                    docActive = true;
+                  } else {
+                    showError("浏览器不支持navigator.clipboard, 请更换新版浏览器", false);
+                  }
+                }, 0);
+              } else {
+                showError(`你要怎么导入数据? /data export <b>${htmlEscape(kwSplits[2])}</b>`);
+              }
+            } else if (subKw == "import") {
               try {
                 const importedData = JSON.parse(rawQuery.slice(13));
                 if (!importedData.starter) {
@@ -429,6 +445,8 @@ $text.on('keydown', (event: JQuery.KeyboardEventBase) => {
               } catch (_) {
                 showError("解析失败", false);
               }
+            } else {
+              showError(`不知道你要对数据干什么 /data <b>${htmlEscape(subKw)}</b>`);
             }
             break;
           case "/disable-command":
