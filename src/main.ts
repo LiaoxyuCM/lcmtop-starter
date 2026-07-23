@@ -70,7 +70,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         [
           ["export clipboard", "导出数据至剪贴板"],
           ["export file", "导出数据并下载成文件"],
-          ["import &lt;data 粘贴导出的JSON&gt;", "导入数据 (由于技术原因, 暂不支持文件上传)"]
+          ["import &lt;data 粘贴JSON数据&gt;", "导入数据 (1. 由于技术原因, 暂不支持文件上传; 2. <b>只能导入你信任的数据</b>)"]
         ].map(
           (dataOption: string[]) => `<p>/data ${dataOption[0]} <span class="description">${dataOption[1]}</span></p>`
         ).join("")
@@ -148,7 +148,7 @@ let helpDocs: Record<string, {content: string, cmd: string}> = {
     cmd: ""
   }
 }
-function htmlEscape (raw: string): string {
+function htmlEscape(raw: string): string {
   return raw.replace(/[&<>"'/]/g, (match: string) => {
     switch (match) {
       case '&': return '&amp;';
@@ -164,12 +164,12 @@ function htmlEscape (raw: string): string {
 parts.forEach((part: string) => {
   commandHelps[part] = $(`.command-help__scope--${part}`);
 });
-function enKVpair(data: Record<string, string>) {
+function enKVpair(data: Record<string, string>): string {
   return Object.entries(data)
     .map(([key, value]) => `${key} ${value}`)
     .join('\n');
 }
-function deKVpair(text: string | null) {
+function deKVpair(text: string | null): Record<string, string> | null {
   return text != null ? Object.fromEntries(
     text.split('\n').map(pair => {
       const [key, ...urlParts] = pair.split(' ');
@@ -197,7 +197,7 @@ let engines: Record<string, string> = deKVpair(localStorage.getItem("engines")) 
 function renderEngines(){
   let engineHTML = "";
   Object.entries(engines).map(([key, _]) => {
-    engineHTML += `<p class="context__type--engine context__engine--${key}">/engine ${key}</p>`
+    engineHTML += `<p class="context__type--engine context__engine--${key}">/engine ${htmlEscape(key)}</p>`
   });
   $(".command-help__scope--engine").append(engineHTML);
 }
@@ -432,11 +432,11 @@ $text.on('keydown', (event: JQuery.KeyboardEventBase) => {
                 }
                 const config = importedData.starter;
 
-                localStorage.setItem("history", config.history ?? localStorage.getItem("history"));
-                localStorage.setItem("engine", config.engine ?? localStorage.getItem("engine"));
-                localStorage.setItem("engines", config.engines ?? localStorage.getItem("engines"));
-                localStorage.setItem("hitokoto-available", config.hitokoto ?? localStorage.getItem("hitokoto-available"));
-                localStorage.setItem("custom-theme", config.theme ?? localStorage.getItem("custom-theme"));
+                if (config.history) localStorage.setItem("history", config.history);
+                if (config.engine) localStorage.setItem("engine", config.engine);
+                if (config.engines) localStorage.setItem("engines", config.engines);
+                if (config.hitokoto) localStorage.setItem("hitokoto-available", config.hitokoto);
+                if (config.theme) localStorage.setItem("custom-theme", config.theme);
 
                 $(".doc-help__lvl--sub")
                   .html("配置已导入, 请刷新(Ctrl/Cmd+R)以生效")
