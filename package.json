@@ -1,7 +1,7 @@
 {
   "name": "starter",
   "private": true,
-  "version": "3.0.72201",
+  "version": "3.0.723",
   "type": "module",
   "scripts": {
     "dev": "vite",
