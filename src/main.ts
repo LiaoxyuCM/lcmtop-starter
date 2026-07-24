@@ -14,10 +14,11 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
               ["theme &lt;color-theme&gt;", "设置颜色主题"],
               ["history &lt;option&gt;", "设置历史记录 (参照 /doc history)"],
               ["engine &lt;engine-name&gt;", "设置搜索引擎"],
-              ["data &lt;option&gt;", "导入/导出数据"]
+              ["hitokoto &lt;option&gt;", "设置一言 (仅屏幕宽&gt;550px才会生效)"],
+              ["goto &lt;url&gt;", "直接前往 url"]
             ],
             [
-              ["hitokoto &lt;option&gt;", "设置一言 (仅屏幕宽&gt;550px才会生效)"],
+              ["data &lt;option&gt;", "导入/导出数据"],
               ["doc &lt;keyword&gt;", "查看文档 (更多起始页技巧已在 /doc tricks 中阐明)"],
               ["disable-command", "关闭命令"],
               ["/&lt;keywords&gt;", "正常搜索以 \"/\" 开头的关键词 (前两个\"/\"会被合并为一个\"/\")"]
@@ -383,6 +384,14 @@ $text.on('keydown', (event: JQuery.KeyboardEventBase) => {
               showError(`不知道你要怎么设置一言 /hitokoto <b>${htmlEscape(subKw)}</b>`);
             }
             break;
+          case "/goto":
+            subKw = kwSplits[1]
+            if (!(/^https?:\/\//.test(subKw))) {
+              subKw = "http://" + subKw;
+            }
+
+            window.open(subKw, "_blank");
+            break;
           case "/doc":
             subKw = kwSplits[1];
             if (helpDocs[subKw]) {
@@ -497,7 +506,7 @@ $text.on("input", () => {
   }
   rawQuery = String($text.val());
   commandHelps[activePart].css({"display": "none"});
-  parts.some(part => {
+  parts.some((part: string) => {
     const ptc: string = part ? (part == "engine-commands" ? "engine ~ " : part+" ") : "";
     if (rawQuery.startsWith(`/${ptc}`)) {
       commandHelps[part].css({"display": "block"});
