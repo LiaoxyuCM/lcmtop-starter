@@ -91,7 +91,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       }
     </div>
   </div>
-  <div class="doc-help__lvl--root doc-help-doc">
+  <div class="doc-help__lvl--root">
     <div class="doc-help__lvl--sub"></div>
   </div>
 </main>
@@ -253,7 +253,7 @@ $text.on('keydown', (event: JQuery.KeyboardEventBase) => {
   }
   if (event.key === 'Escape') {
     event.preventDefault();
-    $text.blur();
+    $text.trigger("blur");
   } else if (event.key === 'Enter') {
     rawQuery = (String($text.val() ?? "")).trim();
     $text.val("");
@@ -457,7 +457,7 @@ $text.on('keydown', (event: JQuery.KeyboardEventBase) => {
             commandMode = false;
             break;
           default:
-            showError(`不知道你想表达什么 /<b>${htmlEscape(rootKw.slice(1))}</b>`);
+            showError(`不知道你想使用什么命令 /<b>${htmlEscape(rootKw.slice(1))}</b>`);
             break;
         }
         commandHelps[activePart].css({"display": "none"});
@@ -511,7 +511,7 @@ $text.on("input", () => {
 $(document.body).on("keydown", (event: JQuery.KeyboardEventBase) => {
   if (event.key == "/" && (!$text.is(":focus"))) {
     event.preventDefault();
-    $text.focus();
+    $text.trigger("focus");
   }
 });
 
