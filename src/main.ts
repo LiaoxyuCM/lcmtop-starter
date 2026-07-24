@@ -144,7 +144,11 @@ let helpDocs: Record<string, {content: string, cmd: string}> = {
     cmd: "/theme "
   },
   "tricks": {
-    content: "<p>欢迎使用lcmtop-starter, 下面是一些使用技巧<br>输入框默认为聚焦状态, 此时可以按ESC失焦<br>在失焦状态下, 按下 \"/\" 聚焦输入框<br>聚焦状态下再次按下 \"/\" 可以进入命令模式 (最明显的就是下面的命令补全)<br>关于历史记录的操作方法已在 /doc history 中阐明</p>",
+    content: "<p>欢迎使用lcmtop-starter, 下面是一些使用技巧<br>输入框默认为聚焦状态, 此时可以按ESC失焦<br>在失焦状态下, 按下 \"/\" 聚焦输入框<br>聚焦状态下再次按下 \"/\" 可以进入命令模式 (最明显的就是下面的命令补全)<br>关于历史记录的操作方法已在 /doc history 中阐明<br>设备要求可以去 /doc device-req 看</p>",
+    cmd: ""
+  },
+  "device-req": {
+    content: "<p>虽然做了移动端适配, 但是我们仍然建议使用电脑或者有实体键盘连接的设备<br>浏览器最好不要用 IE 或者 低等级的现代浏览器内核 浏览</p>",
     cmd: ""
   }
 }
@@ -171,7 +175,7 @@ function enKVpair(data: Record<string, string>): string {
 }
 function deKVpair(text: string | null): Record<string, string> | null {
   return text != null ? Object.fromEntries(
-    text.split('\n').map(pair => {
+    text.split('\n').map((pair: string) => {
       const [key, ...urlParts] = pair.split(' ');
       return [key, urlParts.join(' ')];
     })
